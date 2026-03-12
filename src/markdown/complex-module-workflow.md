@@ -497,190 +497,9 @@ ProductCard.state = "hover"
 
 ---
 
-## 五、生成的前端代码结构
+## 五、检查清单
 
-### 5.1 目录结构
-
-```
-src/components/
-├── ProductCard/                    # 主模块
-│   ├── index.ts                    # 导出入口
-│   ├── ProductCard.vue             # 组件实现
-│   ├── ProductCard.types.ts        # 类型定义
-│   ├── ProductCard.test.ts         # 单元测试
-│   ├── ProductCard.module.css      # 样式文件
-│   └── images/                     # 图片资源
-│       ├── default-image.png
-│       └── placeholder.svg
-│
-├── ProductImage/                   # 子模块1
-│   ├── index.ts
-│   ├── ProductImage.vue
-│   ├── ProductImage.types.ts
-│   └── ProductImage.module.css
-│
-├── ProductInfo/                    # 子模块2
-│   ├── index.ts
-│   ├── ProductInfo.vue
-│   ├── ProductInfo.types.ts
-│   └── ProductInfo.module.css
-│
-├── ProductAction/                  # 子模块3
-│   ├── index.ts
-│   ├── ProductAction.vue
-│   ├── ProductAction.types.ts
-│   └── ProductAction.module.css
-│
-└── common/                         # 原子组件
-    ├── Tag/
-    │   ├── index.ts
-    │   ├── Tag.vue
-    │   └── Tag.types.ts
-    ├── Button/
-    │   ├── index.ts
-    │   ├── Button.vue
-    │   └── Button.types.ts
-    ├── Price/
-    │   ├── index.ts
-    │   ├── Price.vue
-    │   └── Price.types.ts
-    └── Icon/
-        ├── index.ts
-        └── icons/
-            ├── icon-favorite.svg
-            └── icon-share.svg
-```
-
-### 5.2 类型定义
-
-```typescript
-// ProductCard.types.ts
-export type LayoutType = 'vertical' | 'horizontal';
-export type SizeType = 'small' | 'medium' | 'large';
-export type StateType = 'default' | 'hover' | 'selected';
-
-export interface ProductCardProps {
-  /** 布局方式 */
-  layout?: LayoutType;
-  /** 卡片尺寸 */
-  size?: SizeType;
-  /** 卡片状态 */
-  state?: StateType;
-  /** 商品图片 */
-  image?: string;
-  /** 商品标题 */
-  title: string;
-  /** 商品描述 */
-  description?: string;
-  /** 当前价格 */
-  price: number;
-  /** 原价 */
-  originalPrice?: number;
-  /** 标签列表 */
-  tags?: string[];
-  /** 点击事件 */
-  onClick?: () => void;
-  /** 购买按钮点击 */
-  onBuy?: () => void;
-}
-```
-
-### 5.3 组件实现
-
-```vue
-<!-- ProductCard.vue -->
-<template>
-  <div 
-    :class="[
-      'product-card',
-      `product-card--${layout}`,
-      `product-card--${size}`,
-      `product-card--${state}`
-    ]"
-    @click="onClick"
-  >
-    <ProductImage
-      :src="image"
-      :ratio="imageRatio"
-      :show-tag="tags.length > 0"
-      :tag-text="tags[0]"
-      :show-actions="state === 'hover'"
-    />
-    
-    <ProductInfo
-      :title="title"
-      :description="description"
-      :title-lines="titleLines"
-      :tags="tags"
-    />
-    
-    <ProductAction
-      :price="price"
-      :original-price="originalPrice"
-      :button-size="buttonSize"
-      @buy="onBuy"
-    />
-  </div>
-</template>
-
-<script setup lang="ts">
-import { computed } from 'vue';
-import type { ProductCardProps } from './ProductCard.types';
-import ProductImage from '../ProductImage/index.vue';
-import ProductInfo from '../ProductInfo/index.vue';
-import ProductAction from '../ProductAction/index.vue';
-
-const props = withDefaults(defineProps<ProductCardProps>(), {
-  layout: 'vertical',
-  size: 'medium',
-  state: 'default'
-});
-
-// 属性映射
-const imageRatio = computed(() => {
-  const map = { small: '1:1', medium: '4:3', large: '16:9' };
-  return map[props.size];
-});
-
-const titleLines = computed(() => {
-  const map = { small: 1, medium: 2, large: 3 };
-  return map[props.size];
-});
-
-const buttonSize = computed(() => props.size);
-</script>
-
-<style module>
-.product-card {
-  display: flex;
-  border-radius: var(--radius-lg);
-  background: var(--color-bg-container);
-  transition: all var(--transition-base);
-}
-
-.product-card--vertical {
-  flex-direction: column;
-}
-
-.product-card--horizontal {
-  flex-direction: row;
-}
-
-.product-card--hover {
-  box-shadow: var(--shadow-lg);
-}
-
-.product-card--selected {
-  border: 2px solid var(--color-primary);
-}
-</style>
-```
-
----
-
-## 六、检查清单
-
-### 6.1 设计阶段检查
+### 5.1 设计阶段检查
 
 | 检查项 | 说明 | 状态 |
 |--------|------|------|
@@ -692,29 +511,9 @@ const buttonSize = computed(() => props.size);
 | ☐ 实例复用 | 是否使用组件实例而非复制？ | |
 | ☐ Auto Layout | 是否正确使用自动布局？ | |
 
-### 6.2 开发阶段检查
-
-| 检查项 | 说明 | 状态 |
-|--------|------|------|
-| ☐ 类型定义 | Props 类型是否完整？ | |
-| ☐ 属性映射 | 父子组件属性是否正确传递？ | |
-| ☐ 样式隔离 | 是否使用 CSS Modules/Scoped？ | |
-| ☐ 单元测试 | 是否覆盖所有变体组合？ | |
-| ☐ 可访问性 | 是否支持 a11y？ | |
-| ☐ 响应式 | 不同尺寸是否正确适配？ | |
-
-### 6.3 验收标准
-
-| 验收项 | 标准 | 检查方式 |
-|--------|------|----------|
-| 布局还原 | 95%+ | 视觉对比工具 |
-| 变体覆盖 | 100% | 所有变体可切换 |
-| 交互还原 | 100% | 功能测试 |
-| 代码质量 | 无 ESLint 错误 | CI 检查 |
-
 ---
 
-## 七、常见问题与解决方案
+## 六、常见问题与解决方案
 
 ### 7.1 拆分粒度问题
 
@@ -748,9 +547,9 @@ const buttonSize = computed(() => props.size);
 
 ---
 
-## 八、附录
+## 七、附录
 
-### 8.1 组件命名规范
+### 7.1 组件命名规范
 
 | 层级 | 命名格式 | 示例 |
 |------|----------|------|
@@ -759,7 +558,7 @@ const buttonSize = computed(() => props.size);
 | 主模块 | 业务名 | ProductCard, UserProfile |
 | 页面 | Page后缀 | HomePage, ProductPage |
 
-### 8.2 变体属性命名规范
+### 7.2 变体属性命名规范
 
 | 属性类型 | 命名示例 | 可选值 |
 |----------|----------|--------|
@@ -769,7 +568,7 @@ const buttonSize = computed(() => props.size);
 | 布局 | Layout | vertical, horizontal, grid |
 | 显示 | Show* | true, false |
 
-### 8.3 快捷键参考
+### 7.3 快捷键参考
 
 | 操作 | Mac | Windows |
 |------|-----|---------|
@@ -779,7 +578,3 @@ const buttonSize = computed(() => props.size);
 | 编辑组件 | Enter | Enter |
 
 ---
-
-**文档版本**：v1.0  
-**最后更新**：2025年3月  
-**维护团队**：MasterGo Magic MCP Team
