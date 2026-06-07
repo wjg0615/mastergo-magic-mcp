@@ -3,6 +3,8 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { GetDslTool } from "./tools/get-dsl";
+import { GetD2cTool } from "./tools/get-d2c";
+import { GetC2dTool } from "./tools/get-c2d";
 import { GetComponentLinkTool } from "./tools/get-component-link";
 import { GetMetaTool } from "./tools/get-meta";
 import { GetComponentWorkflowTool } from "./tools/get-component-workflow";
@@ -12,7 +14,7 @@ import { parserArgs } from "./utils/args";
 // Main function
 function main() {
   // Parse command line arguments and set environment variables
-  const { token, baseUrl, rules, debug, noRule } = parserArgs();
+  const { token, baseUrl, rules, debug, noRule, proxy } = parserArgs();
 
   if (debug) {
     process.env.DEBUG = "true";
@@ -21,6 +23,7 @@ function main() {
     console.log(`API URL: ${baseUrl || "default"}`);
     console.log(`Rules: ${rules.length > 0 ? rules.join(", ") : "none"}`);
     console.log(`No Rule: ${noRule ? "enabled" : "disabled"}`);
+    console.log(`Proxy: ${proxy || "none"}`);
     console.log(`Debug mode: enabled`);
   }
 
@@ -33,6 +36,8 @@ function main() {
   // Register tools
   new GetVersionTool().register(server);
   new GetDslTool().register(server);
+  new GetD2cTool().register(server);
+  new GetC2dTool().register(server);
   new GetComponentLinkTool().register(server);
   new GetMetaTool().register(server);
   new GetComponentWorkflowTool().register(server);

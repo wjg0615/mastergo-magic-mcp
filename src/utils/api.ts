@@ -1,10 +1,33 @@
 import axios, { AxiosRequestConfig } from "axios";
-import { parseToken, parseUrl, parseRules, parseNoRule } from "./args";
+import { parseToken, parseUrl, parseRules, parseNoRule, parseProxy } from "./args";
 import https from "https";
+import { HttpsProxyAgent } from "https-proxy-agent";
 
-axios.defaults.httpsAgent = new https.Agent({
-  rejectUnauthorized: false,
-});
+// Configure proxy from --proxy arg or HTTP_PROXY/HTTPS_PROXY env vars
+const proxyUrl =
+  parseProxy() ||
+  process.env.HTTPS_PROXY ||
+  process.env.https_proxy ||
+  process.env.HTTP_PROXY ||
+  process.env.http_proxy;
+
+if (proxyUrl) {
+  try {
+    const proxyAgent = new HttpsProxyAgent(proxyUrl, {
+      rejectUnauthorized: false,
+    });
+    axios.defaults.httpAgent = proxyAgent;
+    axios.defaults.httpsAgent = proxyAgent;
+    // Disable axios built-in proxy to avoid double-proxying via proxy-from-env
+    axios.defaults.proxy = false;
+  } catch {
+    throw new Error(`Invalid proxy URL: ${proxyUrl}`);
+  }
+} else {
+  axios.defaults.httpsAgent = new https.Agent({
+    rejectUnauthorized: false,
+  });
+}
 
 // DSL response interface
 export interface DslResponse {
@@ -89,19 +112,19 @@ For example:
  */
 const createHttpUtil = () => {
   return {
-    async getMeta(fileId: string, layerId: string): Promise<string> {
+    async getMeta(fileId: string, layerId: string, sourceLayerId?: string): Promise<string> {
       const response = await axios.get(`${getBaseUrl()}/mcp/meta`, {
         timeout: 30000,
-        params: { fileId, layerId },
+        params: { fileId, layerId, ...(sourceLayerId ? { sourceLayerId } : {}) },
         headers: getCommonHeader(),
       });
       return response.data;
     },
 
-    async getDsl(fileId: string, layerId: string): Promise<DslResponse> {
+    async getDsl(fileId: string, layerId: string, sourceLayerId?: string): Promise<DslResponse> {
       const response = await axios.get(`${getBaseUrl()}/mcp/dsl`, {
         timeout: 30000,
-        params: { fileId, layerId },
+        params: { fileId, layerId, ...(sourceLayerId ? { sourceLayerId } : {}) },
         headers: getCommonHeader(),
       });
 
@@ -112,10 +135,37 @@ const createHttpUtil = () => {
       };
     },
 
-    async getComponentStyleJson(fileId: string, layerId: string) {
+    async getD2c(contentId: string,documentId: string): Promise<DslResponse> {
+      const params: Record<string, any> = { contentId: contentId, documentId: documentId };
+      const response = await axios.get(`${getBaseUrl()}/mcp/d2c/events`, {
+        timeout: 30000,
+        params,
+        headers: getCommonHeader(),
+      });
+
+      return response.data;
+    },
+
+    async postC2d(
+      data: string | Record<string, any>,
+      fileId?: string,
+      layerId?: string
+    ): Promise<any> {
+      const response = await axios.post(
+        `${getBaseUrl()}/mcp/c2d`,
+        { data, fileId, layerId },
+        {
+          timeout: 30000,
+          headers: getCommonHeader(),
+        }
+      );
+      return response.data;
+    },
+
+    async getComponentStyleJson(fileId: string, layerId: string, sourceLayerId?: string) {
       const response = await axios.get(`${getBaseUrl()}/mcp/style`, {
         timeout: 30000,
-        params: { fileId, layerId },
+        params: { fileId, layerId, ...(sourceLayerId ? { sourceLayerId } : {}) },
         headers: getCommonHeader(),
       });
       return response.data;
@@ -133,7 +183,7 @@ const createHttpUtil = () => {
      */
     async extractIdsFromUrl(
       url: string
-    ): Promise<{ fileId: string; layerId: string }> {
+    ): Promise<{ fileId: string; layerId: string; sourceLayerId?: string }> {
       let targetUrl = url;
 
       // Handle short links
@@ -147,7 +197,7 @@ const createHttpUtil = () => {
         if (!redirectUrl) {
           throw new Error("No redirect URL found for short link");
         }
-        targetUrl = redirectUrl;
+        targetUrl = new URL(redirectUrl, url).href;
       }
 
       // Parse the URL
@@ -162,7 +212,9 @@ const createHttpUtil = () => {
       if (!fileId) throw new Error("Could not extract fileId from URL");
       if (!layerId) throw new Error("Could not extract layerId from URL");
 
-      return { fileId, layerId };
+      const sourceLayerId = searchParams.get("source_layer_id") || undefined;
+
+      return { fileId, layerId, sourceLayerId };
     },
   };
 };
